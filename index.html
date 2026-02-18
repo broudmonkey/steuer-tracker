@@ -4,116 +4,138 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Steuer-Tracker Pro</title>
-    
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>⚖️</text></svg>">
-    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-
     <style>
         :root {
             --primary: #4a90e2; --bg: #f4f6f8; --card-bg: #ffffff;
             --text: #333; --danger: #e74c3c; --success: #27ae60;
-            --accent: #f39c12; --gold: #f1c40f;
+            --accent: #f39c12; --gold: #f1c40f; --border: #ddd;
+            --break: #9b59b6; --fav: #f1c40f;
         }
-
-        body { font-family: sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; }
+        body.dark-mode { --bg: #1a1a1a; --card-bg: #2d2d2d; --text: #f0f0f0; --border: #444; }
+        body { font-family: sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; transition: 0.3s; }
         header { background-color: var(--primary); color: white; padding: 15px; text-align: center; border-radius: 0 0 20px 20px; }
         
         .info-stack { display: flex; flex-direction: column; gap: 10px; padding: 15px; }
-        .info-box { background: white; padding: 12px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center; }
-        .info-box h4 { margin: 0 0 5px 0; font-size: 10px; color: var(--primary); text-transform: uppercase; }
-        .info-box p { margin: 0; font-weight: bold; font-size: 14px; }
-
+        .info-box { background: var(--card-bg); padding: 12px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
+        
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 15px 15px 15px; }
-        .subject-card { background: white; padding: 10px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .subject-card { background: var(--card-bg); padding: 10px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid var(--border); cursor: pointer; position: relative; }
+        .delete-sub { position: absolute; top: 5px; right: 5px; background: none; border: none; color: var(--danger); font-size: 14px; cursor: pointer; opacity: 0.5; }
+        
         .progress-bar { background: #eee; height: 6px; border-radius: 3px; margin: 8px 0; overflow: hidden; }
         .progress-fill { height: 100%; transition: width 0.5s; }
-        .gold-fill { background: linear-gradient(90deg, #f1c40f, #f39c12) !important; box-shadow: 0 0 5px var(--gold); }
-
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-        .stat-tile { background: #f8f9fa; padding: 8px; border-radius: 8px; text-align: center; font-size: 12px; }
-
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #ddd; z-index: 100; }
+        .gold-fill { background: linear-gradient(90deg, #f1c40f, #f39c12) !important; }
+        
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: var(--card-bg); display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid var(--border); z-index: 100; }
         .nav-item { color: #888; font-size: 10px; cursor: pointer; text-align: center; flex: 1; }
         .nav-item.active { color: var(--primary); font-weight: bold; }
         
-        .tracker-input { margin: 15px; padding: 15px; background: white; border-radius: 12px; }
-        input, select, textarea { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        .tracker-input { margin: 15px; padding: 15px; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); }
+        input, select, textarea { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; font-size: 16px; background: var(--card-bg); color: var(--text); }
         .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 5px; }
         .hidden { display: none; }
-
-        .log-item, .note-item { background: white; padding: 10px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
-        .action-btns { display: flex; gap: 10px; }
-        .btn-icon { background: none; border: none; font-size: 18px; cursor: pointer; }
+        
+        .log-item { background: var(--card-bg); padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .note-card { background: var(--card-bg); padding: 12px; border-radius: 10px; margin-bottom: 10px; border: 1px solid var(--border); position: relative; }
+        .note-card.is-fav { border: 2px solid var(--fav); box-shadow: 0 0 8px rgba(241, 196, 15, 0.3); }
+        .btn-icon { background: none; border: none; font-size: 18px; cursor: pointer; padding: 5px; }
+        .quote-box { font-style: italic; color: var(--accent); font-size: 18px; font-weight: bold; text-align: center; }
+        .goal-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
     </style>
 </head>
 <body>
 
     <header>
         <h2 style="margin:0;">Steuer-Tracker Pro</h2>
-        <div id="streak-display" style="font-size:12px; margin-top:5px;">🔥 Streak: 0 Tage</div>
+        <div id="streak-display" style="font-size:12px; margin-top:5px;">🔥 Streak: Fokus halten!</div>
     </header>
 
     <div id="view-dash">
         <div class="info-stack">
-            <div class="info-box"><h4>⏳ Tage bis zum 04.04.2026</h4><p id="countdown">Berechne...</p></div>
+            <div class="info-box"><h4>⏳ Tage bis zum 04.04.2026</h4><p id="countdown">...</p></div>
             <div class="info-box">
                 <h4>📈 Gesamtfortschritt</h4>
                 <p id="total-label">0h / 0h</p>
                 <div class="progress-bar" style="height:10px;"><div id="total-fill" class="progress-fill" style="background:var(--primary);"></div></div>
             </div>
-            <div class="info-box"><h4>✨ Motivation</h4><p id="quote" style="font-style:italic; font-weight:normal; font-size:12px;">Lade...</p></div>
+            <div class="info-box"><p id="quote-display" class="quote-box">"Lade Motivation..."</p></div>
         </div>
         <div class="dashboard-grid" id="main-grid"></div>
         <div class="tracker-input">
-            <h4 style="margin:0 0 10px 0;">Neues Fach ➕</h4>
-            <input type="text" id="new-sub-name" placeholder="z.B. UmwStR">
+            <input type="text" id="new-sub-name" placeholder="Weiteres Fach hinzufügen">
             <button class="btn" style="background:var(--primary); color:white;" onclick="addNewSubject()">Hinzufügen</button>
         </div>
     </div>
 
     <div id="view-timer" class="hidden">
-        <div class="tracker-input">
-            <div class="stats-grid">
-                <div class="stat-tile"><b id="s-today">0h</b><br>Heute</div>
-                <div class="stat-tile"><b id="s-sub">0h</b><br>Fach</div>
-                <div class="stat-tile"><b id="s-rest">0h</b><br>Rest</div>
+        <div id="timer-card" class="tracker-input">
+            <div id="timer-status-badge" style="display:none; padding: 2px 8px; border-radius: 10px; color: white; margin-bottom: 5px; font-size: 12px;">Fokus</div>
+            <select id="timer-sub"></select>
+            <div id="timer-display" style="font-size:48px; text-align:center; font-weight:bold; margin:10px 0;">25:00</div>
+            
+            <div id="timer-setup">
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1;"><small>Lernen (Min)</small><input type="number" id="custom-min" value="25"></div>
+                    <div style="flex:1;"><small>Pause (Min)</small><input type="number" id="custom-pause" value="5"></div>
+                </div>
+                <button class="btn" style="background:var(--primary); color:white;" onclick="startSimpleTimer()">Fokus Starten</button>
+                <button class="btn" style="background:var(--break); color:white; margin-top:10px;" onclick="toggleLernmodusUI()">🧠 Lernmodus (Intervalle)</button>
             </div>
-            <select id="timer-sub" onchange="updateTimerStats()"></select>
-            <div id="timer-display" style="font-size:48px; text-align:center; font-weight:bold; margin:20px 0;">25:00</div>
-            <button class="btn" style="background:var(--primary); color:white;" onclick="startTimer(25)">25 Min Fokus</button>
-            <button class="btn" style="background:var(--danger); color:white;" onclick="resetTimer()">Reset</button>
+
+            <div id="lernmodus-setup" class="hidden" style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 8px; margin-top:10px;">
+                <h4>🧠 Intervall-Planer</h4>
+                <input type="number" id="lm-work" value="25" placeholder="Lernzeit">
+                <input type="number" id="lm-pause" value="5" placeholder="Pause">
+                <input type="number" id="lm-count" value="3" placeholder="Wiederholungen">
+                <button class="btn" style="background:var(--success); color:white;" onclick="startLernmodus()">Session Starten</button>
+                <button class="btn-small" style="width:100%; margin-top:5px;" onclick="toggleLernmodusUI()">Abbrechen</button>
+            </div>
+
+            <div id="timer-controls" style="display:none; flex-direction: column; gap: 10px;">
+                <div id="session-info" style="text-align:center; font-size: 12px;"></div>
+                <div style="display:flex; gap:10px;">
+                    <button id="pause-btn" class="btn" style="background:var(--accent); color:white; flex:1;" onclick="pauseTimer()">⏸️ Pause</button>
+                    <button id="resume-btn" class="btn" style="background:var(--success); color:white; flex:1; display:none;" onclick="resumeTimer()">▶️ Weiter</button>
+                    <button class="btn" style="background:var(--danger); color:white; flex:1;" onclick="resetTimer()">⏹️ Stop</button>
+                </div>
+            </div>
             <hr>
-            <input type="number" id="manual-h" placeholder="Stunden eintragen" step="0.1">
-            <button id="btn-save-manual" class="btn" style="background:#eee;" onclick="saveManual()">Eintragen</button>
+            <div style="display:flex; gap:5px;">
+                <input type="number" id="manual-h" placeholder="Stunden manuell (z.B. 1.5)" step="0.1">
+                <button class="btn" style="background:var(--success); color:white; width: auto;" onclick="saveManual()">Eintragen</button>
+            </div>
         </div>
-        <div style="padding: 0 15px;">
-            <h4>Letzte Buchungen bearbeiten</h4>
-            <div id="log-list"></div>
-        </div>
+        <div id="log-list" style="padding: 0 15px;"></div>
     </div>
 
     <div id="view-notes" class="hidden">
         <div class="tracker-input">
+            <input type="text" id="note-search" placeholder="Notizen durchsuchen..." oninput="renderNotes()">
             <h4 id="note-edit-title">Neue Notiz 📝</h4>
-            <input type="text" id="n-title" placeholder="Thema / Titel">
-            <textarea id="n-body" placeholder="Wichtige Merkposten..."></textarea>
-            <button id="btn-save-note" class="btn" style="background:var(--primary); color:white;" onclick="addNote()">Speichern</button>
-            <button id="btn-cancel-note" class="btn hidden" style="background:#ccc;" onclick="cancelNoteEdit()">Abbrechen</button>
+            <input type="hidden" id="edit-note-id">
+            <input type="text" id="n-title" placeholder="Thema">
+            <textarea id="n-body" placeholder="Inhalt..." rows="4"></textarea>
+            <button id="note-save-btn" class="btn" style="background:var(--primary); color:white;" onclick="addNote()">Speichern</button>
+            <button id="note-cancel-btn" class="btn-small hidden" style="width:100%; margin-top:5px;" onclick="cancelNoteEdit()">Abbrechen</button>
         </div>
-        <div id="notes-list" style="padding:15px;"></div>
+        <div id="notes-list" style="padding:0 15px;"></div>
     </div>
 
-    <div id="view-charts" class="hidden">
-        <div class="info-box" style="margin:15px;"><canvas id="chart1"></canvas></div>
-        <div class="info-box" style="margin:15px;"><canvas id="chart2"></canvas></div>
-    </div>
+    <div id="view-charts" class="hidden"><div class="info-box" style="margin:15px;"><canvas id="chart1"></canvas></div></div>
 
     <div id="view-settings" class="hidden">
-        <div class="tracker-input" id="goal-editor"></div>
         <div class="tracker-input">
-            <button class="btn" style="background:var(--danger); color:white;" onclick="if(confirm('Alle Daten löschen?')) { localStorage.clear(); location.reload(); }">Komplett-Reset</button>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span>Dark Mode 🌙</span>
+                <input type="checkbox" id="dark-toggle" onchange="toggleDarkMode()" style="width:40px;">
+            </div>
+            <hr>
+            <h4>🎯 Zielstunden der Kernfächer</h4>
+            <div id="goal-editor"></div>
+            <hr>
+            <button class="btn" style="background:var(--danger); color:white; margin-top:20px;" onclick="fullReset()">Alles auf Werkszustand</button>
         </div>
     </div>
 
@@ -126,173 +148,257 @@
     </nav>
 
     <script>
-        const colors = { "ESt": "#27ae60", "USt": "#e67e22", "BilSt": "#3498db", "AO": "#9b59b6", "BewR": "#e74c3c", "GesR": "#2c3e50", "PrivR": "#e91e63" };
-        const quotes = ["Kopf hoch, Paragrafen beißen nicht! ⚖️", "Jede Minute zählt.", "Fokus an, Welt aus. ✨"];
-        
-        let data = JSON.parse(localStorage.getItem('st_data')) || {
-            "ESt": {h:0, g:10, t:0}, "USt": {h:0, g:8, t:0}, "BilSt": {h:0, g:10, t:0}, "AO": {h:0, g:5, t:0}
+        // KERNFÄCHER
+        const defaultData = { 
+            "ESt": {h:0, g:100}, "BilSt": {h:0, g:100}, "AO": {h:0, g:60}, 
+            "USt": {h:0, g:80}, "GesR": {h:0, g:40}, "BewR": {h:0, g:40}, "PrivR": {h:0, g:30} 
         };
-        let notes = JSON.parse(localStorage.getItem('st_notes')) || [];
+
+        const quotes = ["Erfolg ist die Summe kleiner Anstrengungen.", "Steuerrecht ist ein Marathon.", "Fokus schlägt Talent.", "Jede Stunde bringt dich näher ans Ziel."];
+        
+        let data = JSON.parse(localStorage.getItem('st_data')) || defaultData;
         let logs = JSON.parse(localStorage.getItem('st_logs')) || [];
-        let tInt, editNoteId = null;
+        let notes = JSON.parse(localStorage.getItem('st_notes')) || [];
+        let sessionsDone = parseInt(localStorage.getItem('st_sessions')) || 0;
+        let isDark = localStorage.getItem('st_dark') === 'true';
+
+        let tInt, timeLeft, isWorkPhase, currentReps, totalReps, workTime, pauseTime, currentChart;
 
         function init() {
-            updateCD(); updateQuote(); renderDash(); updateDrops(); renderNotes(); renderGoalEdit(); renderLogs();
-            Chart.register(ChartDataLabels);
+            if(isDark) { document.body.classList.add('dark-mode'); document.getElementById('dark-toggle').checked = true; }
+            updateCD(); renderDash(); updateDrops(); renderNotes(); displayRandomQuote(); renderLogs(); renderGoalEdit();
         }
 
-        function show(v) {
-            ['dash','timer','notes','charts','settings'].forEach(id => document.getElementById('view-'+id).classList.add('hidden'));
-            document.getElementById('view-'+v).classList.remove('hidden');
-            document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', ['dash','timer','notes','charts','settings'][i] === v));
-            if(v === 'charts') renderCharts();
-            if(v === 'timer') renderLogs();
+        function save() {
+            localStorage.setItem('st_data', JSON.stringify(data));
+            localStorage.setItem('st_logs', JSON.stringify(logs));
+            localStorage.setItem('st_notes', JSON.stringify(notes));
+            localStorage.setItem('st_sessions', sessionsDone);
+            localStorage.setItem('st_dark', isDark);
         }
 
-        function updateCD() {
-            const diff = new Date("2026-04-04") - new Date();
-            document.getElementById('countdown').innerText = `Noch ${Math.ceil(diff/86400000)} Tage`;
+        function fullReset() {
+            if(confirm("Wirklich ALLES löschen? Kernfächer werden zurückgesetzt.")) {
+                localStorage.clear();
+                data = JSON.parse(JSON.stringify(defaultData));
+                logs = []; notes = []; sessionsDone = 0;
+                save(); location.reload();
+            }
         }
 
-        function updateQuote() { document.getElementById('quote').innerText = quotes[Math.floor(Math.random()*quotes.length)]; }
-
+        // --- DASHBOARD ---
         function renderDash() {
             const grid = document.getElementById('main-grid'); grid.innerHTML = '';
             let sH=0, sG=0;
             Object.entries(data).forEach(([n, d]) => {
                 sH+=d.h; sG+=d.g; const p = (d.h/d.g)*100;
-                grid.innerHTML += `<div class="subject-card"><b>${n}</b><div class="progress-bar"><div class="progress-fill ${p>=100?'gold-fill':''}" style="width:${Math.min(p,100)}%; background:${colors[n]||'#888'}"></div></div><small>${d.h.toFixed(1)}/${d.g}h</small></div>`;
+                grid.innerHTML += `
+                    <div class="subject-card">
+                        <button class="delete-sub" onclick="removeSubject(event, '${n}')">✖</button>
+                        <div onclick="quickLog('${n}')">
+                            <b>${n}</b>
+                            <div class="progress-bar"><div class="progress-fill ${p>=100?'gold-fill':''}" style="width:${Math.min(p,100)}%; background:var(--primary)"></div></div>
+                            <small>${d.h.toFixed(1)} / ${d.g}h</small>
+                        </div>
+                    </div>`;
             });
             document.getElementById('total-label').innerText = `${sH.toFixed(1)}h / ${sG}h`;
             document.getElementById('total-fill').style.width = Math.min((sH/sG)*100, 100)+'%';
-            localStorage.setItem('st_data', JSON.stringify(data));
+            save();
         }
 
-        function addTime(s, h) { 
-            data[s].h += h; data[s].t += h; 
-            logs.unshift({id: Date.now(), sub: s, h: h, date: new Date().toLocaleDateString()});
-            localStorage.setItem('st_logs', JSON.stringify(logs));
-            renderDash(); renderLogs(); updateTimerStats();
+        function quickLog(s) {
+            const current = data[s].h;
+            const v = prompt(`Stunden für ${s} anpassen (aktuell: ${current.toFixed(1)}h):`, current);
+            if(v !== null && v !== "") {
+                const newVal = parseFloat(v);
+                if(!isNaN(newVal)) { data[s].h = newVal; renderDash(); renderLogs(); }
+            }
         }
 
-        function saveManual() { 
-            const s=document.getElementById('timer-sub').value, h=parseFloat(document.getElementById('manual-h').value); 
-            if(h>0) { addTime(s,h); document.getElementById('manual-h').value=''; } 
+        // --- TIMER & LERNMODUS ---
+        function toggleLernmodusUI() {
+            document.getElementById('timer-setup').classList.toggle('hidden');
+            document.getElementById('lernmodus-setup').classList.toggle('hidden');
         }
 
-        function editLog(id) {
-            const log = logs.find(l => l.id === id);
-            document.getElementById('timer-sub').value = log.sub;
-            document.getElementById('manual-h').value = log.h;
-            deleteLog(id, true); // Stilles Löschen zum Bearbeiten
-            document.getElementById('btn-save-manual').innerText = "Änderung speichern";
+        function startSimpleTimer() {
+            workTime = parseInt(document.getElementById('custom-min').value);
+            pauseTime = parseInt(document.getElementById('custom-pause').value);
+            totalReps = 1; currentReps = 1; isWorkPhase = true;
+            initTimerCycle();
         }
 
-        function deleteLog(id, silent = false) {
-            if(!silent && !confirm('Löschen?')) return;
-            const idx = logs.findIndex(l => l.id === id);
-            const log = logs[idx];
-            data[log.sub].h = Math.max(0, data[log.sub].h - log.h);
-            logs.splice(idx, 1);
-            localStorage.setItem('st_logs', JSON.stringify(logs));
-            renderDash(); renderLogs(); updateTimerStats();
+        function startLernmodus() {
+            workTime = parseInt(document.getElementById('lm-work').value);
+            pauseTime = parseInt(document.getElementById('lm-pause').value);
+            totalReps = parseInt(document.getElementById('lm-count').value);
+            currentReps = 1; isWorkPhase = true;
+            toggleLernmodusUI(); initTimerCycle();
         }
 
+        function initTimerCycle() {
+            timeLeft = (isWorkPhase ? workTime : pauseTime) * 60;
+            document.getElementById('timer-setup').style.display = 'none';
+            document.getElementById('timer-controls').style.display = 'flex';
+            updateTimerUI(); runTimer();
+        }
+
+        function runTimer() {
+            clearInterval(tInt);
+            tInt = setInterval(() => {
+                timeLeft--;
+                let min = Math.floor(timeLeft/60), sec = timeLeft%60;
+                document.getElementById('timer-display').innerText = `${min}:${sec<10?'0':''}${sec}`;
+                if(timeLeft <= 0) { clearInterval(tInt); handlePhaseEnd(); }
+            }, 1000);
+        }
+
+        function updateTimerUI() {
+            const badge = document.getElementById('timer-status-badge');
+            badge.style.display = 'inline-block';
+            badge.innerText = isWorkPhase ? "Fokus" : "Pause";
+            badge.style.background = isWorkPhase ? "var(--primary)" : "var(--break)";
+            document.getElementById('session-info').innerText = `Runde ${currentReps}/${totalReps}`;
+        }
+
+        function handlePhaseEnd() {
+            if(isWorkPhase) {
+                const sub = document.getElementById('timer-sub').value;
+                data[sub].h += workTime/60;
+                logs.unshift({id: Date.now(), sub: sub, h: workTime/60, date: new Date().toLocaleDateString()});
+                sessionsDone++; save(); renderDash(); renderLogs();
+                if(pauseTime > 0) { isWorkPhase = false; alert("Zeit für eine Pause! ☕"); initTimerCycle(); }
+                else { checkNext(); }
+            } else { checkNext(); }
+        }
+
+        function checkNext() {
+            if(currentReps < totalReps) { currentReps++; isWorkPhase = true; alert("Weiter geht's! 📚"); initTimerCycle(); }
+            else { resetTimer(); alert("Session beendet! 🎉"); }
+        }
+
+        function resetTimer() { 
+            clearInterval(tInt); 
+            document.getElementById('timer-setup').style.display = 'block'; 
+            document.getElementById('timer-controls').style.display = 'none';
+            document.getElementById('timer-status-badge').style.display = 'none';
+            document.getElementById('timer-display').innerText = "25:00"; 
+        }
+
+        function pauseTimer() { clearInterval(tInt); document.getElementById('pause-btn').style.display = 'none'; document.getElementById('resume-btn').style.display = 'block'; }
+        function resumeTimer() { document.getElementById('pause-btn').style.display = 'block'; document.getElementById('resume-btn').style.display = 'none'; runTimer(); }
+
+        function saveManual() {
+            const s = document.getElementById('timer-sub').value, h = parseFloat(document.getElementById('manual-h').value);
+            if(!isNaN(h)) {
+                data[s].h += h;
+                logs.unshift({id: Date.now(), sub: s, h: h, date: new Date().toLocaleDateString()});
+                renderDash(); renderLogs(); document.getElementById('manual-h').value = '';
+            }
+        }
+
+        // --- HISTORIE (BEARBEITEN/LÖSCHEN) ---
         function renderLogs() {
-            document.getElementById('log-list').innerHTML = logs.slice(0,8).map(l => `
+            document.getElementById('log-list').innerHTML = '<h4>Historie (letzte 5)</h4>' + logs.slice(0,5).map(l => `
                 <div class="log-item">
-                    <span><b>${l.sub}</b>: ${l.h.toFixed(1)}h</span>
-                    <div class="action-btns">
+                    <span><b>${l.sub}</b>: ${l.h.toFixed(2)}h <small>(${l.date})</small></span>
+                    <div>
                         <button class="btn-icon" onclick="editLog(${l.id})">✏️</button>
                         <button class="btn-icon" onclick="deleteLog(${l.id})">🗑️</button>
                     </div>
                 </div>`).join('');
         }
 
-        function addNote() {
-            const t=document.getElementById('n-title').value, b=document.getElementById('n-body').value;
-            if(!t || !b) return;
-            if(editNoteId) {
-                const idx = notes.findIndex(n => n.id === editNoteId);
-                notes[idx] = {id: editNoteId, t, b};
-                editNoteId = null;
-                document.getElementById('note-edit-title').innerText = "Neue Notiz 📝";
-                document.getElementById('btn-cancel-note').classList.add('hidden');
-            } else {
-                notes.unshift({id: Date.now(), t, b});
+        function deleteLog(id) {
+            const l = logs.find(x => x.id === id);
+            if(l && confirm("Eintrag löschen? Stunden werden vom Fach abgezogen.")) {
+                data[l.sub].h = Math.max(0, data[l.sub].h - l.h);
+                logs = logs.filter(x => x.id !== id);
+                save(); renderDash(); renderLogs();
             }
-            localStorage.setItem('st_notes', JSON.stringify(notes));
-            renderNotes();
-            document.getElementById('n-title').value=''; document.getElementById('n-body').value='';
+        }
+
+        function editLog(id) {
+            const l = logs.find(x => x.id === id);
+            const newVal = prompt(`Neue Stunden für ${l.sub} am ${l.date}:`, l.h);
+            if(newVal !== null) {
+                const diff = parseFloat(newVal) - l.h;
+                data[l.sub].h += diff;
+                l.h = parseFloat(newVal);
+                save(); renderDash(); renderLogs();
+            }
+        }
+
+        // --- NOTIZEN (FAVORITEN & EDIT) ---
+        function renderNotes() {
+            const search = document.getElementById('note-search').value.toLowerCase();
+            const filtered = notes.filter(n => n.t.toLowerCase().includes(search) || n.b.toLowerCase().includes(search));
+            filtered.sort((a,b) => (b.fav||0) - (a.fav||0));
+            document.getElementById('notes-list').innerHTML = filtered.map(n => `
+                <div class="note-card ${n.fav?'is-fav':''}">
+                    <div style="display:flex; justify-content:space-between;">
+                        <b>${n.t}</b>
+                        <div>
+                            <button class="btn-icon" onclick="toggleFav(${n.id})">${n.fav?'⭐':'☆'}</button>
+                            <button class="btn-icon" onclick="editNote(${n.id})">✏️</button>
+                            <button class="btn-icon" onclick="deleteNote(${n.id})">🗑️</button>
+                        </div>
+                    </div>
+                    <div style="font-size:14px; margin-top:5px; white-space:pre-wrap;">${n.b}</div>
+                </div>`).join('');
+        }
+
+        function addNote() {
+            const t = document.getElementById('n-title').value, b = document.getElementById('n-body').value, id = document.getElementById('edit-note-id').value;
+            if(!t) return;
+            if(id) { const idx = notes.findIndex(n => n.id == id); notes[idx].t = t; notes[idx].b = b; }
+            else { notes.unshift({id: Date.now(), t, b, fav: false}); }
+            cancelNoteEdit(); save(); renderNotes();
         }
 
         function editNote(id) {
-            const n = notes.find(note => note.id === id);
-            document.getElementById('n-title').value = n.t;
-            document.getElementById('n-body').value = n.b;
-            editNoteId = id;
-            document.getElementById('note-edit-title').innerText = "Notiz bearbeiten ✍️";
-            document.getElementById('btn-cancel-note').classList.remove('hidden');
-            window.scrollTo(0,0);
+            const n = notes.find(x => x.id == id);
+            document.getElementById('n-title').value = n.t; document.getElementById('n-body').value = n.b;
+            document.getElementById('edit-note-id').value = n.id;
+            document.getElementById('note-edit-title').innerText = "Bearbeiten ✏️";
+            document.getElementById('note-cancel-btn').classList.remove('hidden');
+            show('notes'); window.scrollTo(0,0);
         }
 
         function cancelNoteEdit() {
-            editNoteId = null;
-            document.getElementById('n-title').value=''; document.getElementById('n-body').value='';
+            document.getElementById('n-title').value = ''; document.getElementById('n-body').value = '';
+            document.getElementById('edit-note-id').value = '';
             document.getElementById('note-edit-title').innerText = "Neue Notiz 📝";
-            document.getElementById('btn-cancel-note').classList.add('hidden');
+            document.getElementById('note-cancel-btn').classList.add('hidden');
         }
 
-        function deleteNote(id) {
-            if(confirm('Notiz löschen?')) {
-                notes = notes.filter(n => n.id !== id);
-                localStorage.setItem('st_notes', JSON.stringify(notes));
-                renderNotes();
-            }
-        }
+        function deleteNote(id) { if(confirm("Notiz löschen?")) { notes = notes.filter(n => n.id != id); save(); renderNotes(); } }
+        function toggleFav(id) { const i = notes.findIndex(n => n.id == id); notes[i].fav = !notes[i].fav; save(); renderNotes(); }
 
-        function renderNotes() { 
-            document.getElementById('notes-list').innerHTML = notes.map(n=>`
-                <div class="note-item">
-                    <div style="width:75%"><b>${n.t}</b><br><small>${n.b}</small></div>
-                    <div class="action-btns">
-                        <button class="btn-icon" onclick="editNote(${n.id})">✏️</button>
-                        <button class="btn-icon" onclick="deleteNote(${n.id})">🗑️</button>
-                    </div>
-                </div>`).join(''); 
-        }
-
-        function startTimer(m) {
-            clearInterval(tInt); let s = m*60;
-            tInt = setInterval(() => {
-                s--; let min = Math.floor(s/60), sec = s%60;
-                document.getElementById('timer-display').innerText = `${min}:${sec<10?'0':''}${sec}`;
-                if(s<=0) { clearInterval(tInt); addTime(document.getElementById('timer-sub').value, m/60); alert("Zeit um!"); }
-            }, 1000);
-        }
-        function resetTimer() { clearInterval(tInt); document.getElementById('timer-display').innerText = "25:00"; }
-        function updateTimerStats() {
-            const s = document.getElementById('timer-sub').value;
-            document.getElementById('s-sub').innerText = data[s].h.toFixed(1)+'h';
-            document.getElementById('s-rest').innerText = Math.max(0, data[s].g - data[s].h).toFixed(1)+'h';
-        }
-        function renderCharts() {
-            const lbs = Object.keys(data), vals = lbs.map(l=>data[l].h), cls = lbs.map(l=>colors[l] || '#888');
-            new Chart(document.getElementById('chart1'), { type:'pie', data:{labels:lbs, datasets:[{data:vals, backgroundColor:cls}]}, options:{plugins:{datalabels:{color:'#fff'}}}});
-        }
+        // --- SETTINGS & CHART ---
         function renderGoalEdit() {
-            const e = document.getElementById('goal-editor'); e.innerHTML = '<h4>Ziele & Fächer</h4>';
-            Object.entries(data).forEach(([n,d]) => { 
-                e.innerHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                    <span>${n}</span><input type="number" style="width:60px;" value="${d.g}" onchange="data['${n}'].g=parseFloat(this.value); renderDash();">
-                </div>`; 
+            const container = document.getElementById('goal-editor');
+            if(!container) return; container.innerHTML = '';
+            Object.entries(data).forEach(([n, d]) => {
+                container.innerHTML += `<div class="goal-row"><span>${n}</span><input type="number" value="${d.g}" style="width:70px; margin:0;" onchange="updateGoal('${n}', this.value)"></div>`;
             });
         }
-        function updateDrops() { document.getElementById('timer-sub').innerHTML = Object.keys(data).map(s=>`<option value="${s}">${s}</option>`).join(''); }
-        function addNewSubject() { 
-            const n=document.getElementById('new-sub-name').value; 
-            if(n && !data[n]){ data[n]={h:0,g:10,t:0}; document.getElementById('new-sub-name').value=''; renderDash(); updateDrops(); renderGoalEdit(); } 
+
+        function updateGoal(name, val) { if(data[name]) { data[name].g = parseFloat(val) || 1; save(); renderDash(); } }
+        function addNewSubject() { const n = document.getElementById('new-sub-name').value; if(n) { data[n] = {h:0, g:50}; document.getElementById('new-sub-name').value = ''; renderDash(); updateDrops(); renderGoalEdit(); } }
+        function removeSubject(e, n) { e.stopPropagation(); if(confirm(`Fach "${n}" löschen?`)) { delete data[n]; renderDash(); updateDrops(); renderGoalEdit(); } }
+        function show(v) { ['dash','timer','notes','charts','settings'].forEach(id => document.getElementById('view-'+id).classList.add('hidden')); document.getElementById('view-'+v).classList.remove('hidden'); document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', ['dash','timer','notes','charts','settings'][i] === v)); if(v === 'charts') renderCharts(); }
+        function updateCD() { document.getElementById('countdown').innerText = `Noch ${Math.max(0, Math.ceil((new Date("2026-04-04") - new Date())/86400000))} Tage`; }
+        function displayRandomQuote() { document.getElementById('quote-display').innerText = `"${quotes[Math.floor(Math.random()*quotes.length)]}"`; }
+        function updateDrops() { document.getElementById('timer-sub').innerHTML = Object.keys(data).map(s => `<option value="${s}">${s}</option>`).join(''); }
+        function toggleDarkMode() { isDark = !isDark; document.body.classList.toggle('dark-mode', isDark); save(); }
+        function renderCharts() {
+            const ctx = document.getElementById('chart1').getContext('2d');
+            if(currentChart) currentChart.destroy();
+            currentChart = new Chart(ctx, { type: 'bar', data: { labels: Object.keys(data), datasets: [{ label: 'Stunden', data: Object.values(data).map(d => d.h), backgroundColor: '#4a90e2' }] } });
         }
+
         init();
     </script>
 </body>
