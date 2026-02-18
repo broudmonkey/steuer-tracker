@@ -2,214 +2,165 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Steuer-Tracker Pro</title>
-    
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>⚖️</text></svg>">
-    
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-
     <style>
-        :root {
-            --primary: #4a90e2; --bg: #f4f6f8; --card-bg: #ffffff;
-            --text: #333; --danger: #e74c3c; --success: #27ae60;
-            --accent: #f39c12; --gold: #f1c40f;
-        }
-
-        body { font-family: sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; }
-        header { background-color: var(--primary); color: white; padding: 15px; text-align: center; border-bottom-radius: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        h2, h3 { margin-top: 0; color: #2c3e50; font-size: 1.2em; }
         
-        /* Dashboard Info Boxen (Gestapelt) */
-        .info-stack { display: flex; flex-direction: column; gap: 10px; padding: 15px; }
-        .info-box { background: white; padding: 12px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center; }
-        .info-box h4 { margin: 0 0 5px 0; font-size: 10px; color: var(--primary); text-transform: uppercase; }
-        .info-box p { margin: 0; font-weight: bold; font-size: 14px; }
-
-        /* Fach-Karten */
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 15px 15px 15px; }
-        .subject-card { background: white; padding: 10px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .progress-bar { background: #eee; height: 6px; border-radius: 3px; margin: 8px 0; overflow: hidden; }
+        /* Dashboard */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .subject-card { background: #fff; padding: 15px; border-radius: 12px; border: 1px solid #e1e4e8; }
+        .progress-bar { background: #eee; height: 10px; border-radius: 5px; margin: 10px 0; overflow: hidden; }
         .progress-fill { height: 100%; transition: width 0.5s; }
-        .gold-fill { background: linear-gradient(90deg, #f1c40f, #f39c12) !important; box-shadow: 0 0 5px var(--gold); }
-
-        /* Timer & Stats */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-        .stat-tile { background: #f8f9fa; padding: 8px; border-radius: 8px; text-align: center; font-size: 12px; }
-
-        /* Navigation */
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #ddd; }
-        .nav-item { color: #888; font-size: 10px; cursor: pointer; text-align: center; flex: 1; }
-        .nav-item.active { color: var(--primary); font-weight: bold; }
         
-        .tracker-input { margin: 15px; padding: 15px; background: white; border-radius: 12px; }
-        input, select, textarea { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 5px; }
-        .hidden { display: none; }
-        .note-item { background: white; padding: 10px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--primary); }
+        /* Formular */
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { cursor: pointer; border-radius: 8px; border: none; font-weight: bold; }
+        .btn-add { background: #27ae60; color: white; width: 100%; padding: 12px; font-size: 16px; }
+        
+        /* Verlauf/Log */
+        .log-list { max-height: 250px; overflow-y: auto; }
+        .log-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9em; }
+        .log-info { display: flex; flex-direction: column; }
+        .btn-del { background: #ff7675; color: white; padding: 5px 8px; font-size: 0.8em; }
+        .btn-reset-small { background: none; color: #b2bec3; font-size: 1.2em; }
+        
+        .stats-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85em; }
     </style>
 </head>
 <body>
 
-    <header>
-        <h2 style="margin:0;">Steuer-Tracker Pro</h2>
-        <div id="streak-display" style="font-size:12px; margin-top:5px;">🔥 Streak: 0 Tage</div>
-    </header>
-
-    <div id="view-dash">
-        <div class="info-stack">
-            <div class="info-box"><h4>⏳ Tage bis zum 04.04.2026</h4><p id="countdown">Berechne...</p></div>
-            <div class="info-box">
-                <h4>📈 Wochenfortschritt</h4>
-                <p id="total-label">0h / 0h</p>
-                <div class="progress-bar" style="height:10px;"><div id="total-fill" class="progress-fill" style="background:var(--primary);"></div></div>
-            </div>
-            <div class="info-box"><h4>✨ Motivation</h4><p id="quote" style="font-style:italic; font-weight:normal; font-size:12px;">Lade...</p></div>
-        </div>
-        <div class="dashboard-grid" id="main-grid"></div>
-        <div class="tracker-input">
-            <h4 style="margin:0 0 10px 0;">Neues Fach ➕</h4>
-            <input type="text" id="new-sub-name" placeholder="z.B. UmwStR">
-            <button class="btn" style="background:var(--primary); color:white;" onclick="addNewSubject()">Hinzufügen</button>
-        </div>
+    <div class="card">
+        <h2>Countdown ⏳</h2>
+        <div id="countdown" style="font-size: 1.3em; font-weight: bold; color: #e74c3c;"></div>
     </div>
 
-    <div id="view-timer" class="hidden">
-        <div class="tracker-input">
-            <div class="stats-grid">
-                <div class="stat-tile"><b id="s-today">0h</b><br>Heute</div>
-                <div class="stat-tile"><b id="s-sub">0h</b><br>Fach</div>
-                <div class="stat-tile"><b id="s-rest">0h</b><br>Rest</div>
-            </div>
-            <select id="timer-sub" onchange="updateTimerStats()"></select>
-            <div id="timer-display" style="font-size:48px; text-align:center; font-weight:bold; margin:20px 0;">25:00</div>
-            <button class="btn" style="background:var(--primary); color:white;" onclick="startTimer(25)">25 Min Fokus</button>
-            <button class="btn" style="background:var(--danger); color:white;" onclick="resetTimer()">Reset</button>
-            <hr>
-            <input type="number" id="manual-h" placeholder="Manuelle Stunden">
-            <button class="btn" style="background:#eee;" onclick="saveManual()">Eintragen</button>
-        </div>
+    <div class="card">
+        <h3>Zeit & Notiz erfassen ⏱️</h3>
+        <select id="subSel"></select>
+        <input type="number" id="hoursInp" placeholder="Stunden (z.B. 1.5)" step="0.1" inputmode="decimal">
+        <input type="text" id="noteInp" placeholder="Was hast du gelernt? (Notiz)">
+        <button class="btn-add" onclick="addEntry()">Eintragen</button>
     </div>
 
-    <div id="view-notes" class="hidden">
-        <div class="tracker-input">
-            <h4>Notiz 📝</h4>
-            <input type="text" id="n-title" placeholder="Titel">
-            <textarea id="n-body" placeholder="Inhalt..."></textarea>
-            <button class="btn" style="background:var(--primary); color:white;" onclick="addNote()">Speichern</button>
-        </div>
-        <div id="notes-list" style="padding:15px;"></div>
-    </div>
+    <div class="grid" id="subjectGrid"></div>
 
-    <div id="view-charts" class="hidden">
-        <div class="info-box" style="margin:15px; height:300px;">
-            <h4>Ist-Stunden 🥧</h4><canvas id="chart1"></canvas>
-        </div>
-        <div class="info-box" style="margin:15px; height:300px;">
-            <h4>Soll-Ziele 🎯</h4><canvas id="chart2"></canvas>
-        </div>
+    <div class="card" style="margin-top: 20px;">
+        <h3>Letzte Aktivitäten 📝</h3>
+        <div id="logList" class="log-list"></div>
     </div>
-
-    <div id="view-settings" class="hidden">
-        <div class="tracker-input" id="goal-editor"></div>
-        <div class="tracker-input"><button class="btn" style="background:var(--danger); color:white;" onclick="localStorage.clear(); location.reload();">Daten löschen</button></div>
-    </div>
-
-    <nav class="bottom-nav">
-        <div class="nav-item active" onclick="show('dash')">🏠<br>Home</div>
-        <div class="nav-item" onclick="show('timer')">⏱️<br>Timer</div>
-        <div class="nav-item" onclick="show('notes')">📝<br>Notizen</div>
-        <div class="nav-item" onclick="show('charts')">📊<br>Analyse</div>
-        <div class="nav-item" onclick="show('settings')">⚙️<br>Settings</div>
-    </nav>
 
     <script>
-        const colors = { "ESt": "#27ae60", "USt": "#e67e22", "BilSt": "#3498db", "AO": "#9b59b6", "BewR": "#e74c3c", "GesR": "#2c3e50", "PrivR": "#e91e63" };
-        const quotes = ["Kopf hoch, Paragrafen beißen nicht! ⚖️", "Jede Minute zählt für deine Zukunft. 🚀", "Fokus an, Welt aus. ✨", "Du bist stärker als das Steuerrecht!", "Kaffee + Gesetzbuch = Erfolg. ☕"];
-        
-        let data = JSON.parse(localStorage.getItem('st_data')) || {
-            "ESt": {h:0, g:10, t:0}, "USt": {h:0, g:8, t:0}, "BilSt": {h:0, g:10, t:0}, 
-            "AO": {h:0, g:5, t:0}, "BewR": {h:0, g:5, t:0}, "GesR": {h:0, g:5, t:0}, "PrivR": {h:0, g:5, t:0}
+        // 1. Setup
+        const examDate = new Date("2024-10-10");
+        const defaultSubjects = {
+            "ESt": { g: 100, h: 0 },
+            "USt": { g: 80, h: 0 },
+            "AO": { g: 60, h: 0 },
+            "Bilanz": { g: 120, h: 0 }
         };
-        let notes = JSON.parse(localStorage.getItem('st_notes')) || [];
-        let tInt;
+        const colors = { "ESt": "#3498db", "USt": "#f39c12", "AO": "#2ecc71", "Bilanz": "#9b59b6" };
 
-        function init() {
-            updateCD(); updateQuote(); renderDash(); updateDrops(); renderNotes(); renderGoalEdit();
-            Chart.register(ChartDataLabels);
+        // Daten laden
+        let data = JSON.parse(localStorage.getItem('taxData')) || defaultSubjects;
+        let logs = JSON.parse(localStorage.getItem('taxLogs')) || [];
+
+        function save() {
+            localStorage.setItem('taxData', JSON.stringify(data));
+            localStorage.setItem('taxLogs', JSON.stringify(logs));
         }
 
-        function show(v) {
-            ['dash','timer','notes','charts','settings'].forEach(id => document.getElementById('view-'+id).classList.add('hidden'));
-            document.getElementById('view-'+v).classList.remove('hidden');
-            document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', ['dash','timer','notes','charts','settings'][i] === v));
-            if(v === 'charts') renderCharts();
-            if(v === 'timer') updateTimerStats();
-        }
+        // 2. Anzeigen
+        function updateUI() {
+            // Countdown
+            const days = Math.ceil((examDate - new Date()) / (1000 * 60 * 60 * 24));
+            document.getElementById('countdown').innerText = `${days} Tage bis zum Examen`;
 
-        function updateCD() {
-            const diff = new Date("2026-04-04") - new Date();
-            const days = Math.ceil(diff / 86400000);
-            document.getElementById('countdown').innerText = days > 0 ? `Noch ${days} Tage` : (days === 0 ? "Prüfungstag! ⚖️" : "Geschafft!");
-        }
+            // Dashboard & Dropdown
+            const grid = document.getElementById('subjectGrid');
+            const sel = document.getElementById('subSel');
+            grid.innerHTML = '';
+            sel.innerHTML = '';
 
-        function updateQuote() { document.getElementById('quote').innerText = quotes[Math.floor(Math.random()*quotes.length)]; }
+            for (let n in data) {
+                let d = data[n];
+                let p = (d.h / d.g) * 100;
+                
+                sel.innerHTML += `<option value="${n}">${n}</option>`;
+                grid.innerHTML += `
+                    <div class="subject-card">
+                        <b>${n}</b>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width:${Math.min(p, 100)}%; background:${colors[n]}"></div>
+                        </div>
+                        <div class="stats-row">
+                            <span>${d.h.toFixed(1)} / ${d.g}h</span>
+                            <button class="btn-reset-small" onclick="resetSubject('${n}')">🗑️</button>
+                        </div>
+                    </div>`;
+            }
 
-        function renderDash() {
-            const grid = document.getElementById('main-grid'); grid.innerHTML = '';
-            let sH=0, sG=0;
-            Object.entries(data).forEach(([n, d]) => {
-                sH+=d.h; sG+=d.g;
-                const p = (d.h/d.g)*100;
-                grid.innerHTML += `<div class="subject-card"><b>${n}</b><div class="progress-bar"><div class="progress-fill ${p>=100?'gold-fill':''}" style="width:${Math.min(p,100)}%; background:${colors[n]||'#888'}"></div></div><small>${d.h.toFixed(1)}/${d.g}h</small></div>`;
+            // Log anzeigen
+            const logList = document.getElementById('logList');
+            logList.innerHTML = logs.length === 0 ? '<small>Noch keine Einträge</small>' : '';
+            logs.slice().reverse().forEach((log, index) => {
+                const realIndex = logs.length - 1 - index;
+                logList.innerHTML += `
+                    <div class="log-item">
+                        <div class="log-info">
+                            <b>${log.sub}: ${log.hrs}h</b>
+                            <small>${log.date} - ${log.note || 'Keine Notiz'}</small>
+                        </div>
+                        <button class="btn-del" onclick="deleteLog(${realIndex})">Löschen</button>
+                    </div>`;
             });
-            document.getElementById('total-label').innerText = `${sH.toFixed(1)}h / ${sG}h`;
-            document.getElementById('total-fill').style.width = Math.min((sH/sG)*100, 100)+'%';
-            localStorage.setItem('st_data', JSON.stringify(data));
         }
 
-        function startTimer(m) {
-            clearInterval(tInt); let s = m*60;
-            tInt = setInterval(() => {
-                s--; let min = Math.floor(s/60), sec = s%60;
-                document.getElementById('timer-display').innerText = `${min}:${sec<10?'0':''}${sec}`;
-                if(s<=0) { clearInterval(tInt); addTime(document.getElementById('timer-sub').value, m/60); alert("Fertig! 🔔"); }
-            }, 1000);
+        // 3. Aktionen
+        function addEntry() {
+            const sub = document.getElementById('subSel').value;
+            const hrs = parseFloat(document.getElementById('hoursInp').value);
+            const note = document.getElementById('noteInp').value;
+
+            if (hrs > 0) {
+                data[sub].h += hrs;
+                const newLog = {
+                    sub: sub,
+                    hrs: hrs,
+                    note: note,
+                    date: new Date().toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit'})
+                };
+                logs.push(newLog);
+                save();
+                updateUI();
+                document.getElementById('hoursInp').value = '';
+                document.getElementById('noteInp').value = '';
+            }
         }
 
-        function addTime(s, h) { data[s].h += h; data[s].t += h; renderDash(); updateTimerStats(); }
-        function saveManual() { const s=document.getElementById('timer-sub').value, h=parseFloat(document.getElementById('manual-h').value); if(h>0) addTime(s,h); }
-        function resetTimer() { clearInterval(tInt); document.getElementById('timer-display').innerText = "25:00"; }
-
-        function updateTimerStats() {
-            const s = document.getElementById('timer-sub').value;
-            document.getElementById('s-today').innerText = Object.values(data).reduce((a,b)=>a+b.t,0).toFixed(1)+'h';
-            document.getElementById('s-sub').innerText = data[s].t.toFixed(1)+'h';
-            document.getElementById('s-rest').innerText = Math.max(0, data[s].g - data[s].h).toFixed(1)+'h';
+        function deleteLog(index) {
+            const log = logs[index];
+            if(confirm(`Eintrag (${log.sub}: ${log.hrs}h) löschen? Die Zeit wird vom Fach abgezogen.`)) {
+                data[log.sub].h -= log.hrs; // Zeit abziehen
+                logs.splice(index, 1); // Log entfernen
+                save();
+                updateUI();
+            }
         }
 
-        function addNote() {
-            const t=document.getElementById('n-title').value, b=document.getElementById('n-body').value;
-            if(t&&b) { notes.unshift({t,b}); localStorage.setItem('st_notes', JSON.stringify(notes)); renderNotes(); }
-        }
-        function renderNotes() { document.getElementById('notes-list').innerHTML = notes.map(n=>`<div class="note-item"><b>${n.t}</b><br><small>${n.b}</small></div>`).join(''); }
-
-        function renderCharts() {
-            const ctx1 = document.getElementById('chart1'), ctx2 = document.getElementById('chart2');
-            const lbs = Object.keys(data), vals = lbs.map(l=>data[l].h), goals = lbs.map(l=>data[l].g), cls = lbs.map(l=>colors[l]);
-            new Chart(ctx1, { type:'pie', data:{labels:lbs, datasets:[{data:vals, backgroundColor:cls}]}, options:{plugins:{datalabels:{formatter:(v,c)=>{let s=c.dataset.data.reduce((x,y)=>x+y,0); return s?(Math.round(v/s*100)+'%'):''},color:'#fff'}}}});
-            new Chart(ctx2, { type:'pie', data:{labels:lbs, datasets:[{data:goals, backgroundColor:cls}]}, options:{plugins:{datalabels:{formatter:(v,c)=>{let s=c.dataset.data.reduce((x,y)=>x+y,0); return s?(Math.round(v/s*100)+'%'):''},color:'#fff'}}}});
+        function resetSubject(n) {
+            if(confirm(`Gesamten Fortschritt für ${n} löschen?`)) {
+                // Auch Logs für dieses Fach entfernen
+                logs = logs.filter(l => l.sub !== n);
+                data[n].h = 0;
+                save();
+                updateUI();
+            }
         }
 
-        function renderGoalEdit() {
-            const e = document.getElementById('goal-editor'); e.innerHTML = '<h4>Ziele ändern</h4>';
-            Object.entries(data).forEach(([n,d]) => { e.innerHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>${n}</span><input type="number" style="width:60px; margin:0;" value="${d.g}" onchange="data['${n}'].g=parseFloat(this.value); renderDash();"></div>`; });
-        }
-
-        function updateDrops() { document.getElementById('timer-sub').innerHTML = Object.keys(data).map(s=>`<option value="${s}">${s}</option>`).join(''); }
-        function addNewSubject() { const n=document.getElementById('new-sub-name').value; if(n&&!data[n]){ data[n]={h:0,g:5,t:0}; renderDash(); updateDrops(); renderGoalEdit(); } }
-
-        init();
+        updateUI();
     </script>
 </body>
 </html>
